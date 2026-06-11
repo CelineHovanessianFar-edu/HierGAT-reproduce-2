@@ -103,15 +103,14 @@ def initialize_and_train(trainset, validset, testset, attr_num, args, run_tag):
         dev_f1, test_f1 = eval_on_task(epoch, model, valid_iter, test_iter,
                                        writer, run_tag)
 
-        if dev_f1 > 1e-6:
-            epoch += 1
-            if args.save_model:
-                if dev_f1 > best_dev_f1:
-                    best_dev_f1 = dev_f1
-                    torch.save(model.state_dict(), run_tag + '_dev.pt')
-                if test_f1 > best_test_f1:
-                    best_test_f1 = dev_f1
-                    torch.save(model.state_dict(), run_tag + '_test.pt')
+        epoch += 1
+        if args.save_model:
+            if dev_f1 > best_dev_f1:
+                best_dev_f1 = dev_f1
+                torch.save(model.state_dict(), run_tag + '_dev.pt')
+            if test_f1 > best_test_f1:
+                best_test_f1 = test_f1
+                torch.save(model.state_dict(), run_tag + '_test.pt')
 
     writer.close()
 
