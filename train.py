@@ -1,6 +1,7 @@
 import argparse
 import json
 import os
+import sys
 
 from model.eval import eval_on_task
 from model.dataset import Dataset, get_tokenizer
@@ -17,6 +18,20 @@ from torch.utils import data
 from transformers import AdamW, get_linear_schedule_with_warmup
 
 import time
+
+
+class TeeLogger:
+    def __init__(self, *streams):
+        self.streams = streams
+
+    def write(self, message):
+        for stream in self.streams:
+            stream.write(message)
+            stream.flush()
+
+    def flush(self):
+        for stream in self.streams:
+            stream.flush()
 
 
 def train(model, train_set, optimizer, scheduler=None, batch_size=32):
@@ -140,4 +155,15 @@ if __name__ == "__main__":
     valid_dataset = Dataset(validset, category, lm=args.lm, lm_path=args.lm_path, split=args.split)
     test_dataset = Dataset(testset, category, lm=args.lm, lm_path=args.lm_path, split=args.split)
 
-    initialize_and_train(train_dataset, valid_dataset, test_dataset, train_dataset.get_attr_num(), args, run_tag)
+    if not os.path.exists(args.logdir):
+        os.makedirs(args.logdir)
+    log_path = os.path.join(args.logdir, run_tag + '.txt')
+
+    original_stdout = sys.stdout
+    with open(log_path, 'w') as log_file:
+        sys.stdout = TeeLogger(original_stdout, log_file)
+        try:
+            print("Saving text log to:", log_path)
+            initialize_and_train(train_dataset, valid_dataset, test_dataset, train_dataset.get_attr_num(), args, run_tag)
+        finally:
+            sys.stdout = original_stdout
